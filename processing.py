@@ -1,7 +1,8 @@
 from __future__ import  unicode_literals, print_function, division
 from io import open
 import glob
-
+from model import RNN
+from torch.autograd import Variable
 def findFiles(path): return glob.glob(path)
 
 # print(findFiles('data/names/*.txt'))
@@ -54,5 +55,22 @@ def lineToTensor(line):
         tensor[li][0][letterToIndex(letter)] = 1
     return tensor
 
-print(letterToTensor('J'))
-print(lineToTensor('Jones').size())
+# print(letterToTensor('J'))
+# print(lineToTensor('Jones').size())
+
+n_hidden = 128
+rnn = RNN(n_letters,n_hidden,n_categories)
+
+input = Variable(lineToTensor('Albert'))
+hidden = Variable(torch.zeros(1, n_hidden))
+print(input[0].size())
+print(hidden.size())
+output, next_hidden = rnn(input[0], hidden)
+print(output.size())
+
+def categoryFromOutput(output):
+    top_n,top_i = output.data.topk(1)
+    category_i = top_i[0][0]
+    return all_categories[category_i], category_i
+
+print(categoryFromOutput(output))
