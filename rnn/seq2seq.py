@@ -1,10 +1,14 @@
 import re 
 import unicodedata
 import pickle
-
+import torch
+from torch.autograd import Variable
+from seq_rnn import EncoderRNN,DecoderRNN
 DATASET_PATH = './data/eng-fra.txt'
 
 MAX_LENGTH = 10
+SOS_token = 0
+EOS_token = 1
 
 eng_prefixes = (
     "i am ", "i m ",
@@ -65,7 +69,7 @@ def readLines():
     print(eng_lines[0])
     pickle.dump(french_lines,open('data/fre.p','wb'))
     pickle.dump(eng_lines,open('data/eng.p','wb'))
-    return
+    return eng_lines,french_lines
 
 def loadLines():
     eng_lines = pickle.load(open('data/eng.p','rb'))
@@ -102,7 +106,55 @@ def prepareData():
         fre_lang.addSentence(b)
     return eng_lang,fre_lang,eng_lines,fre_lines
 
+# we send list of indexes into the model and output list of indexes
+def linetoIndexes(lang,line):
+    indexes = []
+    for word in line.split(' '):
+        if word != '':
+            indexes.append(lang.word2index[word])
+
+    return indexes
+
+def getDataset(lang,lines):
+    dataset = []
+    for li in lines:
+
+        data = linetoIndexes(lang,li)
+        data.append(EOS_token)
+        dataset.append(Variable(torch.Tensor(data)))
+
+   
+    return dataset
+
+
 eng_lang,fre_lang,eng_lines,fre_lines = prepareData()
+print(eng_lines[0], fre_lines[0])
+
+dataset_lang1 = getDataset(eng_lang,eng_lines)
+dataset_lang2 = getDataset(fre_lang,fre_lines)
+
+def train(lang1,lang2):
+    hidden_size = 256
+
+    encoder = EncoderRNN(lang1.n_words,hidden_size)
+
+    dataset_size = len(lang1)
+    encoder_hidden = encoder.initHidden()
+    decoder_hidden = decoder.initHidden()
+    for i in range(dataset_size):
+        input = lang1[i]
+        target = lang2[i]
+
+        input_len = input.size(0)
+        target_len = target.size(0)
+
+        # encoder
+        for j in range(input_len):
+            encoder_output,encoder_hidden = encoder(input[j],encoder_hidden)
+            print(encoder_output)
+
+
+
 
 
 
