@@ -121,29 +121,24 @@ def getDataset(lang,lines):
 
         data = linetoIndexes(lang,li)
         data.append(EOS_token)
-        dataset.append(Variable(torch.Tensor(data)))
+        dataset.append(Variable(torch.LongTensor(data)))
 
    
     return dataset
 
 
-eng_lang,fre_lang,eng_lines,fre_lines = prepareData()
-print(eng_lines[0], fre_lines[0])
-
-dataset_lang1 = getDataset(eng_lang,eng_lines)
-dataset_lang2 = getDataset(fre_lang,fre_lines)
-
-def train(lang1,lang2):
+def train(lang1,lang2,lang1_n_words,lang2_n_words):
     hidden_size = 256
 
-    encoder = EncoderRNN(lang1.n_words,hidden_size)
+    encoder = EncoderRNN(lang1_n_words,hidden_size)
 
     dataset_size = len(lang1)
     encoder_hidden = encoder.initHidden()
-    decoder_hidden = decoder.initHidden()
+    # decoder_hidden = decoder.initHidden()
     for i in range(dataset_size):
         input = lang1[i]
         target = lang2[i]
+        print(input.type)
 
         input_len = input.size(0)
         target_len = target.size(0)
@@ -152,8 +147,16 @@ def train(lang1,lang2):
         for j in range(input_len):
             encoder_output,encoder_hidden = encoder(input[j],encoder_hidden)
             print(encoder_output)
+        break
 
 
+eng_lang,fre_lang,eng_lines,fre_lines = prepareData()
+print(eng_lines[0], fre_lines[0])
+
+lang1 = getDataset(eng_lang,eng_lines)
+lang2 = getDataset(fre_lang,fre_lines)
+
+train(lang1,lang2,eng_lang.n_words,fre_lang.n_words)
 
 
 
