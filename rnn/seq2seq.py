@@ -151,6 +151,13 @@ def train(lang1,lang2,lang1_n_words,lang2_n_words):
         decoder_input = Variable(torch.LongTensor([SOS_token]))
         decoder_hidden = encoder_hidden
 
+        for j in range(target_len):
+            decoder_output,decoder_hidden,decoder_attention = decoder(
+                target[j], decoder_hidden, encoder_outputs
+            )
+            topv,topi = decoder_output.data.topk(1)
+            ni = topi[0][0]
+
         break
 
 
