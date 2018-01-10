@@ -131,22 +131,26 @@ def train(lang1,lang2,lang1_n_words,lang2_n_words):
     hidden_size = 256
 
     encoder = EncoderRNN(lang1_n_words,hidden_size)
-
+    decoder = DecoderRNN(hidden_size,lang2_n_words)
     dataset_size = len(lang1)
     encoder_hidden = encoder.initHidden()
     # decoder_hidden = decoder.initHidden()
     for i in range(dataset_size):
         input = lang1[i]
         target = lang2[i]
-        print(input.type)
-
+        
         input_len = input.size(0)
         target_len = target.size(0)
 
+        encoder_outputs = Variable(torch.zeros(MAX_LENGTH,encoder.hidden_size))
         # encoder
         for j in range(input_len):
             encoder_output,encoder_hidden = encoder(input[j],encoder_hidden)
-            print(encoder_output)
+            encoder_outputs[j] = encoder_output[0][0]
+        
+        decoder_input = Variable(torch.LongTensor([SOS_token]))
+        decoder_hidden = encoder_hidden
+
         break
 
 
