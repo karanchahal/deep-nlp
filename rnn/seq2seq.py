@@ -129,13 +129,16 @@ def getDataset(lang,lines):
 
 def train(lang1,lang2,lang1_n_words,lang2_n_words):
     hidden_size = 256
-
     encoder = EncoderRNN(lang1_n_words,hidden_size)
     decoder = DecoderRNN(hidden_size,lang2_n_words)
     dataset_size = len(lang1)
-    encoder_hidden = encoder.initHidden()
+    
     # decoder_hidden = decoder.initHidden()
     for i in range(dataset_size):
+        encoder_hidden = encoder.initHidden()
+        encoder_optimizer.zero_grad()
+        decoder_optimizer.zero_grad()
+
         input = lang1[i]
         target = lang2[i]
         
@@ -153,12 +156,23 @@ def train(lang1,lang2,lang1_n_words,lang2_n_words):
 
         for j in range(target_len):
             decoder_output,decoder_hidden,decoder_attention = decoder(
-                target[j], decoder_hidden, encoder_outputs
+                decoder_input, decoder_hidden, encoder_outputs
             )
             topv,topi = decoder_output.data.topk(1)
             ni = topi[0][0]
 
+            decoder_input = Variable(torch.LongTensor([ni]))
+            loss += criterion(decoder_output, target[j])
+            if ni == EOS_token:
+                break
+
         break
+    loss.backward()
+    encoder_optimizer.step()
+    decoder_optimizer.step()
+
+        break
+    
 
 
 eng_lang,fre_lang,eng_lines,fre_lines = prepareData()
