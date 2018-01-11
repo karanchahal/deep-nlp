@@ -21,6 +21,22 @@ eng_prefixes = (
     "they are", "they re "
 )
 
+import time
+import math
+
+
+def asMinutes(s):
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' % (m, s)
+
+
+def timeSince(since, percent):
+    now = time.time()
+    s = now - since
+    es = s / (percent)
+    rs = es - s
+    return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
 class Lang:
     def __init__(self,name):
@@ -129,7 +145,7 @@ def getDataset(lang,lines):
     return dataset
 
 
-def train(lang1,lang2,lang1_n_words,lang2_n_words):
+def train(lang1,lang2,lang1_n_words,lang2_n_words,print_every=1, plot_every=100):
     hidden_size = 256
     learning_rate = 0.01
     dataset_size = len(lang1)
@@ -142,16 +158,18 @@ def train(lang1,lang2,lang1_n_words,lang2_n_words):
     criterion = nn.NLLLoss()
     print_loss_total = 0
     plot_loss_total = 0
+    start = time.time()
+    plot_losses = []
     
-    loss = 0
     # decoder_hidden = decoder.initHidden()
-    for i in range(dataset_size):
+    for i in range(1,dataset_size+1):
         encoder_hidden = encoder.initHidden()
         encoder_optimizer.zero_grad()
         decoder_optimizer.zero_grad()
+        loss = 0
 
-        input = lang1[i]
-        target = lang2[i]
+        input = lang1[i-1]
+        target = lang2[i-1]
         
         input_len = input.size(0)
         target_len = target.size(0)
@@ -176,8 +194,25 @@ def train(lang1,lang2,lang1_n_words,lang2_n_words):
                 break
    
         loss.backward()
+        loss = loss.data[0]/target_len
+
         encoder_optimizer.step()
         decoder_optimizer.step()
+
+        print_loss_total += loss
+        plot_loss_total += loss
+
+        if i% print_every == 0:
+            print_loss_avg = print_loss_total / print_every
+            print_loss_total = 0
+            print('%s (%d %d%%) %.4f' % (timeSince(start, i/ dataset_size),
+                                         i, i / dataset_size * 100, print_loss_avg))
+        if i % plot_every == 0:
+            plot_loss_avg = plot_loss_total / plot_every
+            plot_losses.append(plot_loss_avg)
+            plot_loss_total = 0
+        
+    showPlot(plot_losses)
 
     
 
