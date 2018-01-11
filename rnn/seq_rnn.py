@@ -1,7 +1,7 @@
 import torch.nn as nn
 from torch.autograd import Variable
 import torch
-
+import torch.nn.functional as F
 class EncoderRNN(nn.Module):
     def __init__(self,input_size,hidden_size,n_layers=1):
         super(EncoderRNN, self).__init__()
@@ -48,7 +48,8 @@ class DecoderRNN(nn.Module):
 
 
 class AttentionDecoderRNN(nn.Module):
-    def __init__(self,hidden_size,output_size,n_layers=1,max_length=10):
+    def __init__(self,hidden_size,output_size,n_layers=1,max_length=10,dropout_p=0.5):
+        super(AttentionDecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.n_layers = n_layers
@@ -67,17 +68,17 @@ class AttentionDecoderRNN(nn.Module):
         embedded = self.embedding(input).view(1,1,-1)
         embedded = self.dropout(embedded)
 
-        attention_weights = F.softmax( self.attention( torch.cat((embedded[0], hidden[0]),1), dim=1 ))
+        attention_weights = F.softmax( self.attention( torch.cat((embedded[0], hidden[0]),1) ))
         attention_applied = torch.bmm(attention_weights.unsqueeze(0), encoder_outputs.unsqueeze(0))
 
-        output = torch.cat( (embeddded[0],attention_applied[0]) ,1)
+        output = torch.cat( (embedded[0],attention_applied[0]) ,1)
         output = self.attention_combine(output).unsqueeze(0)
 
         for i in range(self.n_layers):
             output = F.relu(output)
             output, hidden = self.gru(output,hidden)
         
-        output =F.log_softmax(self.out(output[0]), dim=1)
+        output =F.log_softmax(self.out(output[0]))
         return output,hidden,attention_weights
         
     def initHidden(self):

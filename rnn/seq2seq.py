@@ -2,8 +2,10 @@ import re
 import unicodedata
 import pickle
 import torch
+import torch.nn as nn
 from torch.autograd import Variable
-from seq_rnn import EncoderRNN,DecoderRNN
+from seq_rnn import EncoderRNN,DecoderRNN,AttentionDecoderRNN
+import torch.optim as optim
 DATASET_PATH = './data/eng-fra.txt'
 
 MAX_LENGTH = 10
@@ -129,10 +131,19 @@ def getDataset(lang,lines):
 
 def train(lang1,lang2,lang1_n_words,lang2_n_words):
     hidden_size = 256
-    encoder = EncoderRNN(lang1_n_words,hidden_size)
-    decoder = DecoderRNN(hidden_size,lang2_n_words)
+    learning_rate = 0.01
     dataset_size = len(lang1)
+
+    encoder = EncoderRNN(lang1_n_words,hidden_size)
+    decoder = AttentionDecoderRNN(hidden_size,lang2_n_words)
     
+    encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
+    decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+    criterion = nn.NLLLoss()
+    print_loss_total = 0
+    plot_loss_total = 0
+    
+    loss = 0
     # decoder_hidden = decoder.initHidden()
     for i in range(dataset_size):
         encoder_hidden = encoder.initHidden()
@@ -155,9 +166,7 @@ def train(lang1,lang2,lang1_n_words,lang2_n_words):
         decoder_hidden = encoder_hidden
 
         for j in range(target_len):
-            decoder_output,decoder_hidden,decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs
-            )
+            decoder_output,decoder_hidden,decoder_attention = decoder(decoder_input, decoder_hidden, encoder_outputs)
             topv,topi = decoder_output.data.topk(1)
             ni = topi[0][0]
 
@@ -165,13 +174,11 @@ def train(lang1,lang2,lang1_n_words,lang2_n_words):
             loss += criterion(decoder_output, target[j])
             if ni == EOS_token:
                 break
+   
+        loss.backward()
+        encoder_optimizer.step()
+        decoder_optimizer.step()
 
-        break
-    loss.backward()
-    encoder_optimizer.step()
-    decoder_optimizer.step()
-
-        break
     
 
 
